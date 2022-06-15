@@ -1,0 +1,15 @@
+# npm
+node_modules
+
+# build
+dist
+
+# terraform
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# ide
+.history
