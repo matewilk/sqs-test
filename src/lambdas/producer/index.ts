@@ -5,6 +5,7 @@ import {
   SendMessageBatchCommand,
   SendMessageBatchCommandInput,
 } from "@aws-sdk/client-sqs";
+import newrelic, { TransactionHandle, DistributedTraceHeaders } from "newrelic";
 import { v4 as uuid } from "uuid";
 
 const sqsClient = new SQSClient({
@@ -37,9 +38,24 @@ const calculateFullResult = (result) => {
   );
 };
 
-const generateNewRelicTraceContextJson = () => {
-  
-}
+const generateNewRelicTraceContextJson = (attr) => {
+  // @ts-ignore
+  const transactionHandle: TransactionHandle = newrelic.getTransaction();
+  const dtHeaders: DistributedTraceHeaders = {};
+  transactionHandle.insertDistributedTraceHeaders(dtHeaders);
+
+  newrelic.addCustomAttribute("queue", attr);
+
+  console.log("DT-HEADERS", dtHeaders);
+  return JSON.stringify(dtHeaders);
+};
+
+const generateNewRelicMessageAttrs = (attr) => ({
+  NRDT: {
+    DataType: "String",
+    StringValue: generateNewRelicTraceContextJson(attr),
+  },
+});
 
 const chunkArray = (inputArray: any[]) =>
   inputArray.reduce((all, one, i) => {
@@ -48,22 +64,25 @@ const chunkArray = (inputArray: any[]) =>
     return all;
   }, []);
 
-const createMessagesBatch = (batch: any[]): MessageBatch[] => {
+const createMessagesBatch = (batch: any[], attr: string): MessageBatch[] => {
   return batch.map((item, index) => {
     return {
       Id: `messageId-${index}`, // Id needs to be unique within a request
       MessageBody: `Message ${item}`,
+      MessageAttributes: { ...generateNewRelicMessageAttrs(attr) },
     };
   });
 };
 
-const sendMessage = async (message: string, messageGroupId: string) => {
+const sendMessage = async (
+  message: string,
+  messageGroupId: string,
+  attr: string
+) => {
   const input: SendMessageCommandInput = {
     QueueUrl: process.env.SQS_QUEUE_URL,
     MessageGroupId: messageGroupId,
-    MessageAttributes: {
-
-    },
+    MessageAttributes: { ...generateNewRelicMessageAttrs(attr) },
     MessageBody: message,
     MessageDeduplicationId: uuid(),
   };
@@ -116,7 +135,7 @@ export const handler = async (event: Event) => {
   if (batch) {
     const chunked = chunkArray(iterable);
     const allBatches = chunked.map(async (batch) => {
-      const messagesBatch = createMessagesBatch(batch);
+      const messagesBatch = createMessagesBatch(batch, "producer-1-attr");
       return await sendBatchMessage(messagesBatch);
     });
 
@@ -127,7 +146,44 @@ export const handler = async (event: Event) => {
     const all = await iterable.map(async (_, index) => {
       try {
         const groupId = Math.round(index / 100); // generate new ID every 100 messages
-        await sendMessage(`Test message ${index}`, `group-${groupId}`);
+        await sendMessage(
+          `Test message ${index}`,
+          `group-${groupId}`,
+          "producer-1-attr"
+        );
+      } catch (error) {
+        console.log(`lambda handler send message error: ${error}`);
+      }
+    });
+
+    await Promise.all(all);
+  }
+};
+
+export const handler2 = async (event: Event) => {
+  console.log(`Triggering ${event.count} messages`);
+  const batch = event.batch || false;
+  const iterable = Array.from(Array(event.count).keys());
+
+  if (batch) {
+    const chunked = chunkArray(iterable);
+    const allBatches = chunked.map(async (batch) => {
+      const messagesBatch = createMessagesBatch(batch, "producer-2-attr");
+      return await sendBatchMessage(messagesBatch);
+    });
+
+    await Promise.all(allBatches);
+    // const fullResult = calculateFullResult(result);
+    // console.log(`FULL RESULT: ${JSON.stringify(fullResult)}`);
+  } else {
+    const all = await iterable.map(async (_, index) => {
+      try {
+        const groupId = Math.round(index / 100); // generate new ID every 100 messages
+        await sendMessage(
+          `Test message ${index}`,
+          `group-${groupId}`,
+          "producer-2-attr"
+        );
       } catch (error) {
         console.log(`lambda handler send message error: ${error}`);
       }
