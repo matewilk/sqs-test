@@ -74,7 +74,7 @@ Navigate to `Distributed Tracing` (in the left hend side menu)
 Select on of the `Trace Groups` and select a `trace`
 <img width="1668" alt="Screenshot 2022-06-29 at 13 39 53" src="https://user-images.githubusercontent.com/6328360/176438394-6b1359c1-84cd-41de-a411-240e465c33c5.png">
 
-Individual `Span`s ane the `trace map` is visible and shows the relationship between `lambdas` (and `queues` when spans are expanded)
+Individual `Span`s and the `trace map` is visible and shows the relationship between `lambdas` (and `queues` when spans are expanded)
 <img width="1666" alt="Screenshot 2022-06-29 at 13 42 04" src="https://user-images.githubusercontent.com/6328360/176438796-2aab9db2-13db-4a86-bb35-a099ad696560.png">
 
 ## Cleanup
