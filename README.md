@@ -1,13 +1,18 @@
 # New Relic AWS Distributed Tracing Integration
 This repo contains an example of AWS Lambda -> SQS -> Lambda New Relic Distributed Tracing integration.
 
-It contains the infrastructure under `/terraform` directory and the achicecture of the infrastructure is described below.
+It contains the infrastructure under `/terraform` directory and the architecture of the infrastructure is described below.
 
 ## Architecture
 
 The `terraform` deployment creates the following AWS architecture (with the names of components depicted in the chart)
 
 ![Lambda_NewRelic_DT drawio](https://user-images.githubusercontent.com/6328360/176427278-916aa432-d8c2-4aeb-a104-07285211880f.png)
+
+- There are two `producer` lambdas, two `sqs` queues via which the `producer` lambdas send messages to the `consumer`
+- Both `producers` are able to send messages in batches (use only batch message)
+- `consumer` is set as a `lambda trigger ` for both `sqs` queues
+- `consume` ingests messages individually (batch size on the lambda is set to `1`)
 
 
 ## How to run
@@ -52,7 +57,7 @@ Navigate to `Test` tab and use the following Event Json to send evnets from a `p
 ![Screenshot 2022-06-29 at 13 25 48](https://user-images.githubusercontent.com/6328360/176435809-70892c2c-f853-4a20-9a60-db8cc5b9d48b.png)
 
 `count` paramter indicates the number of messages to be sent from a `producer` function via an `sqs` queue to the `consumer` function.
-`batch` paramter indicates whether to send messages in batches of `10`
+`batch` paramter indicates whether to send messages in batches of `10` (use batches only for the time being! - `batch: true`)
 
 Use `Monitor` tabs of the components (`lambdas` and `sqs` queues) or CloudWatch Logs to confirm that the messages were sent/received as expected.
 
@@ -71,3 +76,7 @@ Select on of the `Trace Groups` and select a `trace`
 
 Individual `Span`s ane the `trace map` is visible and shows the relationship between `lambdas` (and `queues` when spans are expanded)
 <img width="1666" alt="Screenshot 2022-06-29 at 13 42 04" src="https://user-images.githubusercontent.com/6328360/176438796-2aab9db2-13db-4a86-bb35-a099ad696560.png">
+
+## Cleanup
+
+Run `terraform destroy` to remove infrastructure from the AWS account.
