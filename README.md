@@ -10,9 +10,9 @@ The `terraform` deployment creates the following AWS architecture (with the name
 ![Lambda_NewRelic_DT drawio](https://user-images.githubusercontent.com/6328360/176427278-916aa432-d8c2-4aeb-a104-07285211880f.png)
 
 - There are two `producer` lambdas, two `sqs` queues via which the `producer` lambdas send messages to the `consumer`
-- Both `producers` are able to send messages in batches (use only batch message)
+- Both `producer`s send messages in batches
 - `consumer` is set as a `lambda trigger ` for both `sqs` queues
-- `consume` ingests messages individually (batch size on the lambda is set to `1`)
+- `consumer` ingests messages individually (batch size on the lambda is set to `1`)
 
 
 ## How to run
